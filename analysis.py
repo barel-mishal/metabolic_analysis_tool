@@ -1,3 +1,4 @@
+from operator import le
 import pandas as pd
 import numpy as np 
 import streamlit as st
@@ -133,37 +134,52 @@ def main():
   # export all groups seperted
   # publish_results_groups_seperted(exp_df)
 
+  
   st.text(
   '''
   TODO: agg all data to the mean or sum
   ''')
   col1, col2, col3, col4 = st.columns(4)
   with col1:
-    option_freq = st.selectbox('Parmeters', ('D', 'H', '5min'))
+    option_freq = st.selectbox('Rolling Mean', ('H', '5min', 'D'))
   with col2:
-    option_parms = st.selectbox('Parmeters', tuple(exp_df.columns))
+    columns = exp_df.columns.to_list()
+    temp = columns[0]
+    columns[0] = columns[11]
+    columns.append(temp)
+    option_parms = st.selectbox('Parmeters', columns)
   with col3:
-    option_radio = st.radio('remove 2std', ('yes', 'no'))
+    option_radio = st.radio('remove 2std', ('no', 'yes'))
   with col4:
-    option_not_in = st.multiselect('Parmeters', (str(i) for i in exp_df.index.get_level_values(1).unique()))
+    option_not_in = st.multiselect('Remove Cages', (str(i) for i in exp_df.index.get_level_values(1).unique()))
+  col1_1, col2_1, col3_1, col4_1 = st.columns(4) 
+  with col1_1:
+    Group_Individual = st.selectbox('Parmeters', ('group', 'individual'))
+  with col2_1:
+    color_lines = st.selectbox('Color lines', ('Group', 'subjectsID', 'Expriments Times', 'DarkLight'))
+  with col3_1:
+    x_axis = st.selectbox('X axis', ('Date_Time_1', 'Expriments Times', 'DarkLight', 'Group', 'subjectsID'))
   
 
-  exp_df = exp_df[~exp_df.index.get_level_values(1).isin(option_not_in)]
-  
-
+  if option_not_in:
+    exp_df = exp_df[~exp_df.index.get_level_values(1).isin(option_not_in)]
   if option_radio == 'yes':
-    data = remove_outliers_mixed_df(exp_df)[option_parms]
-  else: 
+    exp_df = remove_outliers_mixed_df(exp_df)[option_parms] 
+  
+  if 'individual' == Group_Individual: 
     data = exp_df[option_parms]
-  if option_freq == '5min': 
-    # make it possibale to see as a groups
-    fig = px.line(x=data.index.get_level_values(0), y=data, color=data.index.get_level_values(1), markers=True, labels={'y': option_parms, 'x': 'Date Time'})
-  else: 
-    data = data.groupby([pd.Grouper(level=0, freq=option_freq), exp_df.index.get_level_values(2)]).mean()
-    fig = px.line(x=data.index.get_level_values(0), y=data, color=data.index.get_level_values(1), markers=True, labels={'y': option_parms, 'x': 'Date Time'})
+    if option_freq != '5min':
+      group = pd.Grouper(level='Date_Time_1', freq=option_freq)
+      data = data.groupby([group, exp_df.index.get_level_values(1)]).mean()
+  elif 'group' == Group_Individual:
+    data = exp_df[option_parms].unstack([1, 2]).groupby([exp_df[option_parms].unstack([1, 2]).columns.get_level_values(1)], axis=1).mean()
+    if option_freq != '5min':
+      group = pd.Grouper(level='Date_Time_1', freq=option_freq)
+      data = data.groupby([group]).mean().stack()
+    else:
+      data = data.stack()
 
   csv = convert_df(data)
-
   st.download_button(
     "Press to Download",
     csv,
@@ -171,42 +187,24 @@ def main():
     "text/csv",
     key='download-csv'
   )
+
+  col1_2, col2_2 = st.columns(2) 
   
   
+  d = data.reset_index()
+  d.loc[:5]
+  
+  fig = px.line(x=d[x_axis].values, y=data, color=d[color_lines], markers=True, labels={'y': option_parms, 'x': 'Date Time'})  
   st.plotly_chart(fig)
-  st.text('''
-  לעיל פלוט המציג ממוצע משקלי שעתי של קבוצות העכברים על ציר זמן
+
+
+  # data = exp_df['BodyMass (gram)'].groupby([pd.Grouper(level=3, freq='H'), exp_df.index.get_level_values(1)]).mean()
+  # not_in = ['12']
+  # data = data[~data.index.get_level_values(1).isin(not_in)]
+  # cond = [data.index.get_level_values(1).isin(design_exp_df.set_index('Unnamed: 0').loc[name].astype('string')) for name in design_exp_df['Unnamed: 0']]
+  # choice = design_exp_df['Unnamed: 0'].to_list()
+  # groups = np.select(cond, choice)
+  # fig = px.line(x=data.index.get_level_values(0), y=data, color=data.index.get_level_values(1), markers=True, labels={'y': 'weight (gram)', 'x': 'Date Time'})
   
-
-  עקב המשקל הנמוך של קבוצה שאכלה ארוחה עם כמות שומן נמוכה נבדוק אינדבדאולית כל אחד וניתן צבע לקבוצה
-  ''')
-  
-  
-  data = exp_df['BodyMass (gram)'].groupby([pd.Grouper(level=3, freq='H'), exp_df.index.get_level_values(1)]).mean()
-  not_in = ['12']
-  data = data[~data.index.get_level_values(1).isin(not_in)]
-  data
-  cond = [data.index.get_level_values(1).isin(design_exp_df.set_index('Unnamed: 0').loc[name].astype('string')) for name in design_exp_df['Unnamed: 0']]
-  cond[0]
-  choice = design_exp_df['Unnamed: 0'].to_list()
-  groups = np.select(cond, choice)
-  fig = px.line(x=data.index.get_level_values(0), y=data, color=data.index.get_level_values(1), markers=True, labels={'y': 'weight (gram)', 'x': 'Date Time'})
-  st.plotly_chart(fig)
-  st.text('''
-  לעיל פלוט המציג ממוצע משקלי שעתי של העכברים על ציר זמן
-
-  בקבוצה הכחולה ראינו שיש שונות המשקל של עכבר 12 לא עבד לכן נוריד אותו בכלל מהחישוב
-
-  נבדוק עכשיו את הדלטה של כל קבוצות העכברים לראות מה ההבדל בין הקבוצות כאשר כולם מתחילם מאותו משקל
-  ''')
-
-
-
-
-
-
-
-
-
 if __name__ == '__main__':
   main()
