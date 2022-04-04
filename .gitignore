@@ -5,12 +5,12 @@ venv_incal_notebooks/
 privte_notebooks/
 csvs/
 py_files/
+old/
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
 *$py.class
 
-/old
 # C extensions
 *.so
 
