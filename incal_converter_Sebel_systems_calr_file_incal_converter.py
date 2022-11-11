@@ -113,7 +113,7 @@ if __name__ == '__main__':
     experiment_name = "SHANI"
     # 1. specific the location .csv file or fils in the list
     dataframes = [
-        join_path('data', 'exp_shani', 'hebrew_2022-03-20_10_55_shani_tre_032022_recall_m_calr(3).csv')
+        join_path('data', 'exp_shani', 'hebrew_2022-03-20_10_55_shani_tre_032022_recall_minus 30 exactly_m_calr(1).csv')
         ]
 
 

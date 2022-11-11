@@ -9,11 +9,10 @@ def custome_days(pd_DateTime64, hour=00, minute=00, sec=00):
     time_2 = dt.timedelta(hours=hour, minutes=minute, seconds=sec)
     return (pd_DateTime64 - (time_2 - time_1))
 
-def light_and_dark(pd_index_datetime, start='08:30', end='16:30'):
-    times = np.array([time.time() for time in pd_index_datetime])
-    greater = pd.to_datetime(start).time() <= times
-    stricly_less = pd.to_datetime(end).time() > times
-    return np.where((greater & stricly_less), 'light', 'dark')
+def light_and_dark(pd_index, start='08:00', end='16:00'):
+    boolean_df = pd.DataFrame(pd_index.values, index=pd_index.values)
+    isindf = boolean_df.index.isin
+    return np.where(isindf(boolean_df.between_time(start, end).index), 'light', 'dark')
 
 # format
 def flat_list(d_list):
